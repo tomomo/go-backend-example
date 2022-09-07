@@ -1,18 +1,45 @@
 version: "3.9"
 
 services:
-  proxy:
-    hostname: proxy
-    build: ./.devcontainer/proxy
-    depends_on:
-      - app
-    ports:
-      - "80:80"
-    # volumes:
-    #   - ./tmp/log/nginx:/var/log/nginx
+  db:
+    hostname: db
+    build: ./.devcontainer/db
+    volumes:
+      - data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=${database_default_database}
+      - MYSQL_USER=${database_default_username}
+      - MYSQL_PASSWORD=${database_default_password}
   app:
     hostname: app
     build: ./.devcontainer/app
     tty: true
     volumes:
       - .:/go/src
+  phpmyadmin:
+    hostname: phpmyadmin
+    image: phpmyadmin/phpmyadmin
+    restart: always
+    depends_on:
+      - db
+    environment:
+      - PMA_ARBITRARY=1
+      - PMA_HOST=db
+      - PMA_USER=root
+      - PMA_PASSWORD=root
+      - MEMORY_LIMIT=256M
+      - UPLOAD_LIMIT=256M
+      - MAX_EXECUTION_TIME=0
+  proxy:
+    hostname: proxy
+    build: ./.devcontainer/proxy
+    depends_on:
+      - app
+      - phpmyadmin
+    ports:
+      - "80:80"
+    # volumes:
+    #   - ./tmp/log/nginx:/var/log/nginx
+volumes:
+  data:
